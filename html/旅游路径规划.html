@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>OpenLayers 高德地图示例</title>
+
+  <!-- 引入 OpenLayers,加载openlayer的样式和脚本 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+
+  <link rel="stylesheet" href="./css/旅游路径规划style.css">
+  <script src="./JS/查看城市区域.js"></script>
+  <script src="./JS/搜索热门景点.js"></script>
+  <script src="./JS/途经点.js"></script>
+  <script src="./JS/路径规划js.js"></script>
+  <script src="./JS/转换途经点坐标.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div id="controlPanel">
+        <div id="region_panel">
+            <input type="text" id="regionInput" placeholder="输入城市名">
+            <button id="goBtn">查询城市热门景点</button>
+        </div>
+
+        <div id="transports_panel">
+            <div class="btn-group">
+                <button id="busportBtn">查询汽车站</button>
+                <button id="railwayportBtn">查询高铁站</button>
+                <button id="airplaneportBtn">查询飞机场</button>
+            </div>
+            <div class="btn-group">
+                <button class="close_transport" id="close_busportBtn">关闭汽车站图层</button>
+                <button class="close_transport" id="close_railwayportBtn">关闭高铁站图层</button>
+                <button class="close_transport" id="close_airplaneportBtn">关闭飞机场图层</button>
+            </div>
+        </div>
+
+        <div id="plan_panel">
+            <div id="start_div">
+                <p>起始点：</p>
+                <input type="text" id="start_point" placeholder="输入起始点">
+                <button id="go_start_point">定位</button>
+            </div>
+            
+            <div id="gothr_div">
+                <div>
+                    <p style="display: inline;">途径点：</p>
+                    <button id="add_gothr_div_btn">添加途经点</button>
+                </div>
+            </div>
+
+            <div id="start_div">
+                <p>结束点：</p>
+                <input type="text" id="end_point" placeholder="输入结束点">
+                <button id="go_end_point">定位</button>
+            </div>
+            <div>
+                <button id="planBtn">开始规划</button>
+            </div>
+        </div>
+    </div>
+
+  <script>
+    // ========== 加载高德瓦片图层 ==========
+    const gaodeLayer = new ol.layer.Tile({
+      source: new ol.source.XYZ({
+        url: "https://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}",
+        attributions: '© <a href="https://www.amap.com/">高德地图</a>'
+      })
+    });
+
+    // ========== 初始化地图 ==========
+    const map = new ol.Map({
+      target: 'map',
+      layers: [gaodeLayer],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([116.3974, 39.9093]), // 北京天安门坐标
+        zoom: 12
+      })
+    });
+
+
+    // 查询城市热门景点
+    document.getElementById("goBtn").addEventListener("click", function() {
+        const region = document.getElementById("regionInput").value;
+        if (!region) {
+            console.log('没有输入位置！')
+        };
+        // 调用高德地理编码 API
+        fetch(`https://restapi.amap.com/v3/geocode/geo?key=a0d13d2c33bb676e758d9e83e6a5148c&address=${encodeURIComponent(region)}&output=JSON`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.geocodes && data.geocodes.length > 0) {
+                // const location = data.geocodes[0].location.split(","); // "lng,lat"
+
+                // // console.log(region + '\n' + location);
+
+                // const lng = parseFloat(location[0]);
+                // const lat = parseFloat(location[1]);
+
+                const level = data.geocodes[0].level;
+                // console.log(region + '\n' + level);
+
+                if (["省","市","区县"].includes(level)) {
+                    // 假设你有对应的 GeoJSON 数据 geojsonObj
+                    addPolygonFromGaode(region);
+                    showHotSpots(region);
+                } else {
+                    closeHotSpots();
+                    alert("请输入城市区域(省/市/区县)");
+                }  
+            } else {
+            alert("未找到该地区");
+            }
+        })
+        .catch(err => console.error(err)); 
+    });
+
+    // 查询城市交通站
+    document.getElementById("busportBtn").addEventListener("click", function() {
+        const region = document.getElementById("regionInput").value;
+        if (!region) {
+            console.log('没有输入位置！')
+        };
+        // 调用高德地理编码 API
+        fetch(`https://restapi.amap.com/v3/geocode/geo?key=a0d13d2c33bb676e758d9e83e6a5148c&address=${encodeURIComponent(region)}&output=JSON`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.geocodes && data.geocodes.length > 0) {
+                
+                const level = data.geocodes[0].level;
+                // console.log(region + '\n' + level);
+
+                if (["省","市","区县"].includes(level)) {
+                    // 假设你有对应的 GeoJSON 数据 geojsonObj
+                    addPolygonFromGaode(region);
+                    show_transports(region, '150400');
+                } else {
+                    close_transports_layer('150400');
+                    alert("请输入城市区域(省/市/区县)");
+                }  
+            } else {
+            alert("未找到该地区");
+            }
+        })
+        .catch(err => console.error(err)); 
+    });
+
+    document.getElementById("railwayportBtn").addEventListener("click", function() {
+        const region = document.getElementById("regionInput").value;
+        if (!region) {
+            console.log('没有输入位置！')
+        };
+        // 调用高德地理编码 API
+        fetch(`https://restapi.amap.com/v3/geocode/geo?key=a0d13d2c33bb676e758d9e83e6a5148c&address=${encodeURIComponent(region)}&output=JSON`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.geocodes && data.geocodes.length > 0) {
+                
+                const level = data.geocodes[0].level;
+                // console.log(region + '\n' + level);
+
+                if (["省","市","区县"].includes(level)) {
+                    // 假设你有对应的 GeoJSON 数据 geojsonObj
+                    addPolygonFromGaode(region);
+                    show_transports(region, '150200');
+                } else {
+                    close_transports_layer('150200');
+                    alert("请输入城市区域(省/市/区县)");
+                }  
+            } else {
+            alert("未找到该地区");
+            }
+        })
+        .catch(err => console.error(err)); 
+    });
+
+    document.getElementById("airplaneportBtn").addEventListener("click", function() {
+        const region = document.getElementById("regionInput").value;
+        if (!region) {
+            console.log('没有输入位置！')
+        };
+        // 调用高德地理编码 API
+        fetch(`https://restapi.amap.com/v3/geocode/geo?key=a0d13d2c33bb676e758d9e83e6a5148c&address=${encodeURIComponent(region)}&output=JSON`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.geocodes && data.geocodes.length > 0) {
+                
+                const level = data.geocodes[0].level;
+                // console.log(region + '\n' + level);
+
+                if (["省","市"].includes(level)) {
+                    // 假设你有对应的 GeoJSON 数据 geojsonObj
+                    addPolygonFromGaode(region);
+                    show_transports(region, '150104');
+                } else {
+                    close_transports_layer('150104');
+                    alert("请输入城市区域(省/市/区县)");
+                }  
+            } else {
+            alert("未找到该地区");
+            }
+        })
+        .catch(err => console.error(err)); 
+    });
+    // 关闭交通图层
+    const close_transport_btns = document.querySelectorAll('.close_transport');
+    close_transport_btns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.id; // 获取 data-type
+            if (id === 'close_busportBtn') close_transports_layer('150400');
+            if (id === 'close_railwayportBtn') close_transports_layer('150200');
+            if (id === 'close_airplaneportBtn') close_transports_layer('150104');
+        });
+    });
+
+    // 开始点
+    document.getElementById("go_start_point").addEventListener("click", function() {
+        const start_point = document.getElementById("start_point").value;
+        const go_city = document.getElementById("regionInput").value;
+        getLocation(start_point, go_city)
+        .then(start_point_loc => {
+            add_start_point_marker(start_point_loc[0], start_point_loc[1]);
+            zoom_to(start_point_loc[0], start_point_loc[1]);
+        }) 
+    });
+
+    map.addLayer(gothr_point_layer);
+
+    // 结束点
+    document.getElementById("go_end_point").addEventListener("click", function() {
+        const end_point = document.getElementById("end_point").value;
+        const go_city = document.getElementById("regionInput").value;
+        // 异步函数，需要then来执行
+        getLocation(end_point, go_city)
+        .then(end_point_loc => {
+            // console.log("坐标：", end_point_loc); // [lng, lat]
+            // 在这里用 coords 做后续操作
+            add_end_point_marker(end_point_loc[0], end_point_loc[1]);
+            zoom_to(end_point_loc[0], end_point_loc[1]);   
+        })
+    });
+
+    // 添加途经点
+    // 点击按钮添加途经点
+    document.getElementById("add_gothr_div_btn").addEventListener("click", function() {
+        // const go_city = document.getElementById("regionInput").value;
+        // 创建新的空值途径点
+        add_gothr_poi_div(null);
+        // console.log('go_city:', go_city)
+    });
+
+    // 点击图标或地图时添加途径点
+    map.on('singleclick', function(evt) {
+        
+        let clicked = false;
+        
+        map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+            // console.log(feature)
+            if (feature.get('type') == 'hotspot_point') {
+                const coord = ol.proj.toLonLat(feature.getGeometry().getCoordinates());
+                // waypoints.push(coord);
+                // console.log("本次选择途径点:", coord);
+                clicked = true;
+                const gothr_marker = add_gothr_point_marker(coord[0], coord[1], [coord[0], coord[1]]);
+                // 创建新途径点
+                add_gothr_poi_div(feature.get('name'), gothr_marker);
+                } ;
+        });
+
+        // 如果没点到任何图标，就存真实坐标
+        if (!clicked) {
+            const coord = ol.proj.toLonLat(evt.coordinate);
+            // console.log("点击地图途径点:", coord);
+            const gothr_marker = add_gothr_point_marker(coord[0], coord[1], [coord[0], coord[1]]);
+            // map.addLayer(gothr_point_layer);
+            console.log('gothr_layer添加成功')
+            // 创建新途经点
+            add_gothr_poi_div(coord, gothr_marker);
+        }
+        // console.log("已选途径点:", waypoints);
+    });
+
+
+
+    // 路径规划
+    document.getElementById("planBtn").addEventListener("click", function() {
+        let go_city = document.getElementById("regionInput").value
+        
+         // 假设父 div 的 id 是 gothr_div
+        let parentDiv = document.getElementById('gothr_div');
+        // console.log(parentDiv); 
+        // 获取所有 class 为 waypoint-row 的子 div
+        let rows = parentDiv.querySelectorAll('.waypoint-row');
+        // console.log(rows); 
+        // 遍历每个子 div，获取里面的 input 值
+
+        fetchRoute(rows, go_city)  // retun promise
+        .then(({origin, destination, way_points}) => {
+            console.log('出发点', origin);
+            console.log('结束点', destination);
+            add_start_point_marker(origin[0], origin[1]);
+            add_end_point_marker(destination[0], destination[1]);
+            console.log('途经点', way_points);
+
+            let way_points_str = '';
+            if (way_points && way_points.length > 0) {
+                way_points_str = way_points.map(p => p.join(',')).join(';');
+            }
+            // // 调用路径规划api
+            let url = `https://restapi.amap.com/v5/direction/driving?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=tmcs`;
+            if (way_points_str) url += `&waypoints=${way_points_str}`;
+            // console.log(url);
+            return fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                // console.log('路线数据:', data);
+                const steps = data.route.paths[0].steps;
+                console.log('steps:', steps);
+                drawRoute(steps);
+            });
+        })
+    });
+
+    
+  </script>
+
+  
+
+
+</body>
+</html>
