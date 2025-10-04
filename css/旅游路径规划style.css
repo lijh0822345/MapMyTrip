@@ -1,0 +1,130 @@
+#map {
+  width: 100%;
+  height: 100vh; /* 占满整个可视高度 */
+  position: relative;
+}
+
+#controlPanel {
+  position: absolute; /* 相对于地图容器定位 */
+  top: 5px;          /* 距离顶部 10px */
+  right: 5px;        /* 距离右边 10px */
+  background-color: rgba(255, 255, 255, 0.8); /* 半透明白背景 */
+  padding: 8px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+  z-index: 1000;      /* 确保在地图上方 */
+  width: 400px;  /* 自行调整宽度 */
+}
+
+#region_panel, #transports_panel, #plan_panel {
+    width: 400px;  /* 自行调整宽度 */
+}
+#region_panel {
+    display: flex;         /* 横向排列子元素 */
+    gap: 5px;              /* 输入框和按钮之间的间距 */
+    width: 100%;           /* 撑满父容器 */
+    height: 30px;            /* 设置高度 */
+}
+#region_panel input {
+    flex: 1 1 auto;               /* flex-grow多余空间 分配时的增长比例 flex-shrink空间不足时 缩小 的能力 flex-basis初始空间（可以是像素、百分比等） */
+    min-width: 0;            /* 避免 flex item 不可缩小导致溢出 */
+    box-sizing: border-box; /* 包括 padding/border 在内，也就是总宽度 默认是content-box，也就是只算content的宽度和高度*/
+    font-size: 18px; /* 设置输入文字大小，可以根据需要调整 */
+}
+#region_panel button {
+    flex: 0 0 200px;        /* 按钮保持自身宽度 */
+    font-size: 16px;
+}
+
+#transports_panel {
+    display: flex;
+    flex-direction: column; /* 上下排列两个组 */
+    gap: 3px; /* 两组之间间距 */
+    margin-top: 10px;        /* 上边距，可改成你需要的数值 */
+    width: 100%;
+}
+/* 每组按钮横向排列并等宽 */
+.btn-group {
+    display: flex;
+    gap: 5px; /* 按钮之间间距 */
+}
+/* 所有按钮等宽高 */
+#transports_panel button {
+    flex: 1;        /* 平分父容器宽度 */
+    height: 28px;   /* 高度统一 */
+    font-size: 16px;
+    align-items: center; /* 垂直居中对齐 */
+    justify-content: center;    /* 水平居中 */
+}
+
+#plan_panel {
+    display: flex;
+    flex-direction: column; /* 上下排列子元素 */
+    gap: 3px;              /* 子元素间距 */
+    margin-top: 10px; 
+}
+
+#start_div, #end_div {
+  display: flex;       /* 启用 flex 布局 */
+  align-items: center; /* 垂直居中对齐 */
+  width: 100%;
+  font-size: 16px;
+}
+
+#start_div p, #end_div p {
+  margin: 0;           /* 去掉默认段落上下间距 */
+  font-size: 18px;
+}
+
+#start_div input, #end_div input {
+  flex: 1;             /* 输入框占据剩余空间 */
+  box-sizing: border-box;
+  font-size: 16px;
+  height: 28px;   /* 高度统一 */
+  margin-right: 5px;
+}
+
+#start_div button, #end_div button {
+  flex: 0 0 auto;      /* 按钮保持自身宽度 */
+  height: 28px;   /* 高度统一 */
+  font-size: 16px;
+}
+
+#gothr_div {
+  display: flex;       /* 启用 flex 布局 */
+  flex-direction: column; /*上下排列子元素*/
+  width: 100%;
+  font-size: 16px;
+  gap: 3px;
+}
+#gothr_div > div {
+  display: flex;          /* 子 div 内部还是左右排列 */
+  align-items: center;
+  width: 100%;            /* 让子 div 撑满父容器 */
+}
+#gothr_div p {
+  margin: 0;           /* 去掉默认段落上下间距 */
+  font-size: 18px;
+}
+#gothr_div input {
+  flex: 1;             /* 输入框占据剩余空间 */
+  box-sizing: border-box;
+  font-size: 16px;
+  height: 28px;   /* 高度统一 */
+  margin-right: 5px;
+}
+#gothr_div button {
+  flex: 1;      /* 按钮保持自身宽度 */
+  height: 28px;   /* 高度统一 */
+  font-size: 16px;
+}
+
+#planBtn {
+  display: flex;       /* 启用 flex 布局 */
+  align-items: center; /* 垂直居中对齐 */
+  width: 100%;
+  font-size: 16px;
+  justify-content: center;    /* 水平居中 */
+  height: 28px;   /* 高度统一 */
+  margin-top: 10px;
+}
