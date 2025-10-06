@@ -4,6 +4,29 @@
   position: relative;
 }
 
+
+.input-wrapper {
+  position: relative; /* 让 suggestion-box 相对这个容器定位 */
+  width: 150px;
+  flex: 1 1 auto;
+  display: flex;
+  
+}
+
+.suggestion-box {
+  position: absolute;
+  top: 100%; /* 出现在 input 正下方 */
+  left: 0;
+  background: white;
+  border: 1px solid #ccc;
+  width: 100%; /* 宽度和 input 一样 */
+  max-height: 200px;
+  overflow-y: auto;
+  display: none; /* 默认隐藏 */
+  z-index: 2000;
+}
+
+
 #controlPanel {
   position: absolute; /* 相对于地图容器定位 */
   top: 5px;          /* 距离顶部 10px */
@@ -128,3 +151,38 @@
   height: 28px;   /* 高度统一 */
   margin-top: 10px;
 }
+
+
+
+
+/* 让加载圈居中在地图上 */
+#map-loading {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000; /* 保证覆盖地图但不挡控件 */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 10px;
+  padding: 20px 40px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+/* 转圈动画 */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ccc;
+  border-top-color: #2196f3;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+

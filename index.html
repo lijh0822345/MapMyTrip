@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>OpenLayers 高德地图示例</title>
+  <title>MapMyTrip</title>
 
   <!-- 引入 OpenLayers,加载openlayer的样式和脚本 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
@@ -14,6 +14,7 @@
   <script src="./JS/途经点.js"></script>
   <script src="./JS/路径规划js.js"></script>
   <script src="./JS/转换途经点坐标.js"></script>
+  <script src="./JS/输入提示.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -28,7 +29,10 @@
 
     <div id="controlPanel">
         <div id="region_panel">
-            <input type="text" id="regionInput" placeholder="输入城市名">
+            <div class="input-wrapper">
+                <input type="text" id="regionInput" placeholder="输入城市结果更精确">
+                <div class="suggestion-box"></div>
+            </div>
             <button id="goBtn">查询城市热门景点</button>
         </div>
 
@@ -48,8 +52,12 @@
         <div id="plan_panel">
             <div id="start_div">
                 <p>起始点：</p>
-                <input type="text" id="start_point" placeholder="输入起始点">
+                <div class="input-wrapper">
+                    <input type="text" id="start_point" placeholder="输入起始点">
+                    <div class="suggestion-box"></div>
+                </div>
                 <button id="go_start_point">定位</button>
+                
             </div>
             
             <div id="gothr_div">
@@ -61,7 +69,10 @@
 
             <div id="start_div">
                 <p>结束点：</p>
-                <input type="text" id="end_point" placeholder="输入结束点">
+                <div class="input-wrapper">
+                    <input type="text" id="end_point" placeholder="输入结束点">
+                    <div class="suggestion-box"></div>
+                </div>
                 <button id="go_end_point">定位</button>
             </div>
             <div>
@@ -69,8 +80,14 @@
             </div>
         </div>
     </div>
+    <!-- 路线规划加载圈 -->
+    <div id="map-loading">
+        <div class="spinner"></div>
+        <p>正在规划路线...</p>
+    </div>
 
   <script>
+    const api_key='a0d13d2c33bb676e758d9e83e6a5148c';
     // ========== 加载高德瓦片图层 ==========
     const gaodeLayer = new ol.layer.Tile({
       source: new ol.source.XYZ({
@@ -91,6 +108,7 @@
 
 
     // 查询城市热门景点
+    get_input_tips('regionInput', "regionInput")
     document.getElementById("goBtn").addEventListener("click", function() {
         const region = document.getElementById("regionInput").value;
         if (!region) {
@@ -101,12 +119,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.geocodes && data.geocodes.length > 0) {
-                // const location = data.geocodes[0].location.split(","); // "lng,lat"
-
-                // // console.log(region + '\n' + location);
-
-                // const lng = parseFloat(location[0]);
-                // const lat = parseFloat(location[1]);
 
                 const level = data.geocodes[0].level;
                 // console.log(region + '\n' + level);
@@ -225,31 +237,74 @@
     });
 
     // 开始点
+    get_input_tips('start_point', "regionInput")
     document.getElementById("go_start_point").addEventListener("click", function() {
-        const start_point = document.getElementById("start_point").value;
-        const go_city = document.getElementById("regionInput").value;
-        getLocation(start_point, go_city)
-        .then(start_point_loc => {
-            add_start_point_marker(start_point_loc[0], start_point_loc[1]);
-            zoom_to(start_point_loc[0], start_point_loc[1]);
-        }) 
+        let foundEntry = null;
+        let start_pt_name = document.getElementById("start_point").value;
+        let go_city = document.getElementById("regionInput").value;
+        console.log('ptsMap', ptsMap)
+        // 遍历 Map，找到符合 name 的项
+        for (let [key, value] of ptsMap.entries()) {
+            if (value.name === start_pt_name) {
+                foundEntry = { key, value };
+                break;
+            }
+        }
+        // 判断是否找到
+        if (foundEntry?.value.coords.length > 0) {
+            console.log("已存在:", foundEntry.key, "对应属性为:", foundEntry.value);
+            console.log('ptsMap存在该点位,且有coords,直接查询')
+            coords = foundEntry.value.coords
+            add_start_point_marker(coords[0], coords[1]);
+            zoom_to(coords[0], coords[1]);
+        } else {
+            console.log("ptsMap 中不存在该点位或没有coords,需要地理编码搜索,并创建新key");
+            getLocation(start_pt_name, go_city)
+            .then(start_point_loc => {
+                ptsMap.set('start_point', create_property({name:start_pt_name, coords:start_point_loc, marker:null}));
+                add_start_point_marker(start_point_loc[0], start_point_loc[1]);
+                zoom_to(start_point_loc[0], start_point_loc[1]);
+                console.log('ptsMap新key创建完成', ptsMap)
+            }) 
+        }
+    });
+
+    
+
+    // 结束点
+    get_input_tips('end_point', "regionInput")
+    document.getElementById("go_end_point").addEventListener("click", function() {
+        let foundEntry = null;
+        let end_pt_name = document.getElementById("end_point").value;
+        let go_city = document.getElementById("regionInput").value;
+        console.log('ptsMap', ptsMap)
+        // 遍历 Map，找到符合 name 的项
+        for (let [key, value] of ptsMap.entries()) {
+            if (value.name === end_pt_name) {
+                foundEntry = { key, value };
+                break;
+            }
+        }
+        // 判断是否找到
+        if (foundEntry?.value.coords.length > 0) {
+            console.log("已存在:", foundEntry.key, "对应属性为:", foundEntry.value);
+            console.log('ptsMap存在该点位,且有coords,直接查询')
+            coords = foundEntry.value.coords
+            add_end_point_marker(coords[0], coords[1]);
+            zoom_to(coords[0], coords[1]);
+        } else {
+            console.log("ptsMap 中不存在该点位或没有coords,需要地理编码搜索,并创建新key");
+            getLocation(end_pt_name, go_city)
+            .then(end_point_loc => {
+                ptsMap.set('end_point', create_property({name:end_pt_name, coords:end_point_loc, marker:null}));
+                add_end_point_marker(end_point_loc[0], end_point_loc[1]);
+                zoom_to(end_point_loc[0], end_point_loc[1]);
+                console.log('ptsMap新key创建完成', ptsMap)
+            }) 
+        }
     });
 
     map.addLayer(gothr_point_layer);
-
-    // 结束点
-    document.getElementById("go_end_point").addEventListener("click", function() {
-        const end_point = document.getElementById("end_point").value;
-        const go_city = document.getElementById("regionInput").value;
-        // 异步函数，需要then来执行
-        getLocation(end_point, go_city)
-        .then(end_point_loc => {
-            // console.log("坐标：", end_point_loc); // [lng, lat]
-            // 在这里用 coords 做后续操作
-            add_end_point_marker(end_point_loc[0], end_point_loc[1]);
-            zoom_to(end_point_loc[0], end_point_loc[1]);   
-        })
-    });
 
     // 添加途经点
     // 点击按钮添加途经点
@@ -262,9 +317,8 @@
 
     // 点击图标或地图时添加途径点
     map.on('singleclick', function(evt) {
-        
         let clicked = false;
-        
+        // 如果点到图标，就存图标坐标
         map.forEachFeatureAtPixel(evt.pixel, function(feature) {
             // console.log(feature)
             if (feature.get('type') == 'hotspot_point') {
@@ -272,9 +326,9 @@
                 // waypoints.push(coord);
                 // console.log("本次选择途径点:", coord);
                 clicked = true;
-                const gothr_marker = add_gothr_point_marker(coord[0], coord[1], [coord[0], coord[1]]);
                 // 创建新途径点
-                add_gothr_poi_div(feature.get('name'), gothr_marker);
+                add_gothr_poi_div(feature.get('name'), [coord[0], coord[1]]);
+                console.log('ptsMap', ptsMap)
                 } ;
         });
 
@@ -282,57 +336,64 @@
         if (!clicked) {
             const coord = ol.proj.toLonLat(evt.coordinate);
             // console.log("点击地图途径点:", coord);
-            const gothr_marker = add_gothr_point_marker(coord[0], coord[1], [coord[0], coord[1]]);
             // map.addLayer(gothr_point_layer);
             console.log('gothr_layer添加成功')
             // 创建新途经点
-            add_gothr_poi_div(coord, gothr_marker);
+            add_gothr_poi_div(coord, [coord[0], coord[1]]);
+            console.log('ptsMap', ptsMap)
         }
         // console.log("已选途径点:", waypoints);
     });
 
-
-
-    // 路径规划
-    document.getElementById("planBtn").addEventListener("click", function() {
-        let go_city = document.getElementById("regionInput").value
-        
-         // 假设父 div 的 id 是 gothr_div
-        let parentDiv = document.getElementById('gothr_div');
-        // console.log(parentDiv); 
-        // 获取所有 class 为 waypoint-row 的子 div
-        let rows = parentDiv.querySelectorAll('.waypoint-row');
-        // console.log(rows); 
-        // 遍历每个子 div，获取里面的 input 值
-
-        fetchRoute(rows, go_city)  // retun promise
-        .then(({origin, destination, way_points}) => {
-            console.log('出发点', origin);
-            console.log('结束点', destination);
-            add_start_point_marker(origin[0], origin[1]);
-            add_end_point_marker(destination[0], destination[1]);
-            console.log('途经点', way_points);
-
-            let way_points_str = '';
-            if (way_points && way_points.length > 0) {
-                way_points_str = way_points.map(p => p.join(',')).join(';');
-            }
-            // // 调用路径规划api
-            let url = `https://restapi.amap.com/v5/direction/driving?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=tmcs`;
-            if (way_points_str) url += `&waypoints=${way_points_str}`;
-            // console.log(url);
-            return fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                // console.log('路线数据:', data);
-                const steps = data.route.paths[0].steps;
-                console.log('steps:', steps);
-                drawRoute(steps);
-            });
-        })
-    });
-
     
+    // 路径规划
+    const mapLoading = document.getElementById('map-loading');
+    const routeBtn = document.getElementById('planBtn');
+    routeBtn.addEventListener('click', async () => {
+        // 显示加载圈
+        mapLoading.style.display = "flex"; // 显示
+
+        try {
+            // 为地理编码搜索做准备
+            let go_city = document.getElementById("regionInput").value
+            // 假设父 div 的 id 是 gothr_div
+            let parentDiv = document.getElementById('gothr_div');
+            // console.log(parentDiv); 
+            // 获取所有 class 为 waypoint-row 的子 div
+            let rows = parentDiv.querySelectorAll('.waypoint-row');
+            
+            fetchRoute(rows, go_city)  // retun promise
+            .then(({origin, destination, way_points}) => {
+                console.log('出发点', origin);
+                console.log('结束点', destination);
+                console.log('途经点', way_points);
+
+                let way_points_str = '';
+                if (way_points && way_points.length > 0) {
+                    way_points_str = way_points.map(p => p.join(',')).join(';');
+                }
+                // // 调用路径规划api
+                let url = `https://restapi.amap.com/v5/direction/driving?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=tmcs`;
+                if (way_points_str) url += `&waypoints=${way_points_str}`;
+                // console.log(url);
+                return fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    
+                    // console.log('路线数据:', data);
+                    const steps = data.route.paths[0].steps;
+                    console.log('steps:', steps);
+                    drawRoute(steps);
+                    mapLoading.style.display = 'none'; // 关闭图层
+                });
+            })
+        } catch (error) {
+            mapLoading.style.display = 'none'; // 关闭图层
+            console.error("路线规划失败：", error);
+            alert("路线规划失败，请重试！");
+        } 
+    });
+ 
   </script>
 
   
