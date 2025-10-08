@@ -35,7 +35,8 @@ function addPointMarker(lng, lat) {
   map.getView().fit(vectorSource.getExtent(), {
     padding: [50,50,50,50], // 四周留白
     minResolution: 2,       // 可选，限制最小缩放
-    maxZoom: 16             // 可选，限制最大缩放
+    maxZoom: 16,             // 可选，限制最大缩放
+    duration: 1500
   });
 }
 
@@ -45,6 +46,7 @@ function addPolygonFromGaode(keywords) {
   if (city_polygon) {
     map.removeLayer(city_polygon);
     city_polygon = null;
+    vectorSource = null;
   }
 
   // 调用高德行政区查询 API
@@ -62,7 +64,6 @@ function addPolygonFromGaode(keywords) {
             return ol.proj.fromLonLat([lng, lat]);
           });
         });
-
         // console.log(polygons)
 
         // 创建矢量图层显示
@@ -71,7 +72,7 @@ function addPolygonFromGaode(keywords) {
             geometry: new ol.geom.MultiPolygon([polygons])
           })]
         });
-
+        console.log('vectorSource.getExtent()', vectorSource.getExtent())
         city_polygon = new ol.layer.Vector({
           source: vectorSource,
           style: new ol.style.Style({
@@ -81,8 +82,12 @@ function addPolygonFromGaode(keywords) {
         });
 
         map.addLayer(city_polygon);
+        console.log('vectorSource.getExtent()', vectorSource.getExtent())
         // 调整视图到行政区范围
-        map.getView().fit(vectorSource.getExtent(), { padding: [50,50,50,50] });
+        map.getView().fit(vectorSource.getExtent(), { 
+          padding: [50,50,50,50],
+          duration: 1500 // ✅ 直接加上动画持续时间 
+        });
       }
     })
     .catch(err => console.error(err));

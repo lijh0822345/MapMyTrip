@@ -76,7 +76,8 @@ function zoom_to(lng, lat) {
   map.getView().fit(vectorSource.getExtent(), {
     padding: [50,50,50,50], // 四周留白
     minResolution: 2,       // 可选，限制最小缩放
-    maxZoom: 16             // 可选，限制最大缩放
+    maxZoom: 16,             // 可选，限制最大缩放
+    duration: 1500
   });
 }
 

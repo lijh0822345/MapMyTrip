@@ -142,15 +142,21 @@
   font-size: 16px;
 }
 
-#planBtn {
+#plan_div {
   display: flex;       /* 启用 flex 布局 */
   align-items: center; /* 垂直居中对齐 */
   width: 100%;
   font-size: 16px;
-  justify-content: center;    /* 水平居中 */
-  height: 28px;   /* 高度统一 */
-  margin-top: 10px;
+  gap: 5px;
 }
+#plan_div button {
+    flex: 1;        /* 平分父容器宽度 */
+    height: 28px;   /* 高度统一 */
+    font-size: 16px;
+    align-items: center; /* 垂直居中对齐 */
+    justify-content: center;    /* 水平居中 */
+}
+
 
 
 

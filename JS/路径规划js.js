@@ -8,18 +8,16 @@ function parseStepsToCoords(steps) {
     let distances = [];
 
     steps.forEach(step => {
-        step.tmcs.forEach(tmc => {
-            const stepCoords = tmc.tmc_polyline.split(";").map(item => {
-                const [lng, lat] = item.split(",").map(Number);
-                return ol.proj.fromLonLat([lng, lat]);
-                // return [lng, lat];
-            });
-            coords.push(...stepCoords);
-            distances.push(tmc.tmc_distance);
-        });
+        let stepCoords = step.polyline.split(";").map(item => {
+            const [lng, lat] = item.split(",").map(Number);
+            return ol.proj.fromLonLat([lng, lat]);
+            // return [lng, lat];
+        })
+        coords.push(...stepCoords);
+        distances.push(step.step_distance);
     });
 
-    return { coords, distances }; // 返回一个对象，包含两个数组
+    return {coords, distances}; // 返回一个对象，包含两个数组
 }
 
 // 数据清洗，去除重复点位
@@ -110,7 +108,7 @@ function drawRoute(steps) {
     map.addLayer(routeLayer);
 
     // 缩放地图到路线范围
-    map.getView().fit(vectorSource.getExtent(), { padding: [50,50,50,50] });
+    map.getView().fit(vectorSource.getExtent(), { padding: [50,50,50,50], duration: 1500 });
 }
 
 

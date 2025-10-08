@@ -74,20 +74,44 @@ function showHotSpots(city) {
             name: poi.name
           });
 
-          feature.setStyle(new ol.style.Style({
-            image: new ol.style.Icon({
-              src: '/imgs/热门景点.png', // 自定义图标
-              scale: 0.8,
-              anchor: [0.5, 1]
+          feature.setStyle([
+            // 第一层：图标 + 主标题
+            new ol.style.Style({
+              image: new ol.style.Icon({
+                src: '/imgs/热门景点.png',
+                scale: 0.8,
+                anchor: [0.5, 1]
+              }),
+              text: new ol.style.Text({
+                text: poi.name,
+                offsetY: -40, // 主标题稍微高一点
+                textAlign: 'center',
+                textBaseline: 'middle',
+                font: '16px Arial',
+                fill: new ol.style.Fill({ color: 'black' }),
+                stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+              })
             }),
-            text: new ol.style.Text({
-              text: poi.name,
-              offsetY: -25,
-              font: '16px Arial',   // 👈 设置字体大小和字体
-              fill: new ol.style.Fill({ color: 'black' }),
-              stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+
+            // 第二层：副标题（rating）
+            new ol.style.Style({
+              image: new ol.style.Icon({
+                src: '/imgs/五角星.png',
+                scale: 0.4,
+                anchor: [1.5, 2] // 锚点在底部中心
+              }),
+              text: new ol.style.Text({
+                text: poi.business?.rating ?? '',
+                offsetY: -27, // 控制行距
+                textAlign: 'center',
+                textBaseline: 'middle',
+                font: '15px Arial',
+                fill: new ol.style.Fill({ color: '#e97d02' }),
+                stroke: new ol.style.Stroke({ color: 'white', width: 2 })
+              })
             })
-          }));
+          ]);
+  
 
           features.push(feature);
         });
@@ -213,6 +237,8 @@ function closeHotSpots() {
   // 移除上一次热点图层
   if (hotspotLayer) {
     map.removeLayer(hotspotLayer);
+    map.removeLayer(city_polygon);
+    city_polygon = null;
     hotspotLayer = null;
   }
 }

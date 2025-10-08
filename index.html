@@ -53,7 +53,7 @@
             <div id="start_div">
                 <p>起始点：</p>
                 <div class="input-wrapper">
-                    <input type="text" id="start_point" placeholder="输入起始点">
+                    <input type="text" id="start_point" placeholder="输入起始点(点击输入提示规划更快)">
                     <div class="suggestion-box"></div>
                 </div>
                 <button id="go_start_point">定位</button>
@@ -70,13 +70,15 @@
             <div id="start_div">
                 <p>结束点：</p>
                 <div class="input-wrapper">
-                    <input type="text" id="end_point" placeholder="输入结束点">
+                    <input type="text" id="end_point" placeholder="输入结束点(点击输入提示规划更快)">
                     <div class="suggestion-box"></div>
                 </div>
                 <button id="go_end_point">定位</button>
             </div>
-            <div>
-                <button id="planBtn">开始规划</button>
+            <div id="plan_div">
+                <button id="driving_planBtn" class="planBtn">驾车规划</button>
+                <button id="walking_planBtn" class="planBtn">步行规划</button>
+                <button id="bicycling_planBtn" class="planBtn">骑行规划</button>
             </div>
         </div>
     </div>
@@ -242,7 +244,7 @@
         let foundEntry = null;
         let start_pt_name = document.getElementById("start_point").value;
         let go_city = document.getElementById("regionInput").value;
-        console.log('ptsMap', ptsMap)
+        // console.log('ptsMap', ptsMap)
         // 遍历 Map，找到符合 name 的项
         for (let [key, value] of ptsMap.entries()) {
             if (value.name === start_pt_name) {
@@ -348,51 +350,109 @@
     
     // 路径规划
     const mapLoading = document.getElementById('map-loading');
-    const routeBtn = document.getElementById('planBtn');
-    routeBtn.addEventListener('click', async () => {
-        // 显示加载圈
-        mapLoading.style.display = "flex"; // 显示
+    // const routeBtn = document.getElementById('driving_planBtn');
+    // 获取 #plan_div 下的所有 button
+    const plan_buttons = document.querySelectorAll("#plan_div button");
+    // 给每个按钮绑定点击事件
+    plan_buttons.forEach(button => {
+        button.addEventListener('click', async () => {
+            // 显示加载圈
+            mapLoading.style.display = "flex"; // 显示
+            button_id = button.id;
 
-        try {
-            // 为地理编码搜索做准备
-            let go_city = document.getElementById("regionInput").value
-            // 假设父 div 的 id 是 gothr_div
-            let parentDiv = document.getElementById('gothr_div');
-            // console.log(parentDiv); 
-            // 获取所有 class 为 waypoint-row 的子 div
-            let rows = parentDiv.querySelectorAll('.waypoint-row');
-            
-            fetchRoute(rows, go_city)  // retun promise
-            .then(({origin, destination, way_points}) => {
-                console.log('出发点', origin);
-                console.log('结束点', destination);
-                console.log('途经点', way_points);
+            try {
+                // 为地理编码搜索做准备
+                let go_city = document.getElementById("regionInput").value
+                // 假设父 div 的 id 是 gothr_div
+                let parentDiv = document.getElementById('gothr_div');
+                // console.log(parentDiv); 
+                // 获取所有 class 为 waypoint-row 的子 div
+                let rows = parentDiv.querySelectorAll('.waypoint-row');
+                
+                fetchRoute(rows, go_city)  // retun promise
+                .then(({origin, destination, way_points}) => {
+                    // console.log('出发点', origin);
+                    // console.log('结束点', destination);
+                    // console.log('途经点', way_points);
 
-                let way_points_str = '';
-                if (way_points && way_points.length > 0) {
-                    way_points_str = way_points.map(p => p.join(',')).join(';');
-                }
-                // // 调用路径规划api
-                let url = `https://restapi.amap.com/v5/direction/driving?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=tmcs`;
-                if (way_points_str) url += `&waypoints=${way_points_str}`;
-                // console.log(url);
-                return fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    
-                    // console.log('路线数据:', data);
-                    const steps = data.route.paths[0].steps;
-                    console.log('steps:', steps);
-                    drawRoute(steps);
-                    mapLoading.style.display = 'none'; // 关闭图层
-                });
-            })
-        } catch (error) {
-            mapLoading.style.display = 'none'; // 关闭图层
-            console.error("路线规划失败：", error);
-            alert("路线规划失败，请重试！");
-        } 
+                    let way_points_str = '';
+                    if (way_points && way_points.length > 0) {
+                        way_points_str = way_points.map(p => p.join(',')).join(';');
+                    }
+                    // // 调用路径规划api
+                    let url;
+                    if (button_id === 'driving_planBtn') {
+                        url = `https://restapi.amap.com/v5/direction/driving?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=polyline`;
+                    }else if (button_id === 'walking_planBtn') {
+                        url = `https://restapi.amap.com/v5/direction/walking?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=polyline`;
+                    }else if (button_id === 'bicycling_planBtn') {
+                        url = `https://restapi.amap.com/v5/direction/bicycling?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=polyline`;
+                    }
+                    if (way_points_str) url += `&waypoints=${way_points_str}`;
+                    // console.log(url);
+                    return fetch(url)
+                    .then(res => res.json())
+                    .then(data => {
+                        
+                        // console.log('路线数据:', data);
+                        const steps = data.route.paths[0].steps;
+                        // console.log('steps:', steps);
+                        drawRoute(steps);
+                        mapLoading.style.display = 'none'; // 关闭图层
+                    });
+                })
+            } catch (error) {
+                mapLoading.style.display = 'none'; // 关闭图层
+                console.error("路线规划失败：", error);
+                alert("路线规划失败，请重试！");
+            } 
+        });
     });
+
+    // routeBtn.addEventListener('click', async () => {
+    //     // 显示加载圈
+    //     mapLoading.style.display = "flex"; // 显示
+
+    //     try {
+    //         // 为地理编码搜索做准备
+    //         let go_city = document.getElementById("regionInput").value
+    //         // 假设父 div 的 id 是 gothr_div
+    //         let parentDiv = document.getElementById('gothr_div');
+    //         // console.log(parentDiv); 
+    //         // 获取所有 class 为 waypoint-row 的子 div
+    //         let rows = parentDiv.querySelectorAll('.waypoint-row');
+            
+    //         fetchRoute(rows, go_city)  // retun promise
+    //         .then(({origin, destination, way_points}) => {
+    //             console.log('出发点', origin);
+    //             console.log('结束点', destination);
+    //             console.log('途经点', way_points);
+
+    //             let way_points_str = '';
+    //             if (way_points && way_points.length > 0) {
+    //                 way_points_str = way_points.map(p => p.join(',')).join(';');
+    //             }
+    //             // // 调用路径规划api
+    //             let url = `https://restapi.amap.com/v5/direction/walking?key=a0d13d2c33bb676e758d9e83e6a5148c&origin=${origin}&destination=${destination}&show_fields=polyline`;
+    //             if (way_points_str) url += `&waypoints=${way_points_str}`;
+    //             // console.log(url);
+    //             return fetch(url)
+    //             .then(res => res.json())
+    //             .then(data => {
+                    
+    //                 console.log('路线数据:', data);
+    //                 const steps = data.route.paths[0].steps;
+    //                 console.log('steps:', steps);
+    //                 drawRoute(steps);
+    //                 mapLoading.style.display = 'none'; // 关闭图层
+    //             });
+    //         })
+    //     } catch (error) {
+    //         mapLoading.style.display = 'none'; // 关闭图层
+    //         console.error("路线规划失败：", error);
+    //         alert("路线规划失败，请重试！");
+    //     } 
+    // });
  
   </script>
 
